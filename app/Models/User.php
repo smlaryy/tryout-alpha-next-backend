@@ -23,7 +23,11 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'phone',
+        'school_origin',
+        'birth_date',
     ];
+
 
     /**
      * The attributes that should be hidden for serialization.
@@ -45,6 +49,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'birth_date' => 'date',
         ];
     }
 

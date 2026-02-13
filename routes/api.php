@@ -55,6 +55,7 @@ Route::prefix('auth')->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
+    Route::put('/me/profile', [AuthController::class, 'updateProfile']);
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 
@@ -116,6 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // user materials
     Route::get('/materials', [UserMaterialController::class, 'index']);
     Route::get('/materials/{material}', [UserMaterialController::class, 'show']);
+    Route::get('/packages/{package}/materials', [UserMaterialController::class, 'byPackage']);
 });
 
 /*
@@ -182,4 +184,5 @@ Route::middleware(['auth:sanctum', 'admin'])
         // package-materials
         Route::get('packages/{package}/materials', [AdminPackageMaterialController::class, 'index']);
         Route::put('packages/{package}/materials', [AdminPackageMaterialController::class, 'sync']);
+        Route::delete('packages/{package}/materials/{material}', [AdminPackageMaterialController::class, 'destroy']);
     });

@@ -7,6 +7,7 @@ use App\Models\Material;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use App\Models\Package;
 
 class UserMaterialController extends Controller
 {
@@ -25,9 +26,9 @@ class UserMaterialController extends Controller
 
         $q = Material::query()
             ->whereIn('id', $ids)
-            ->when($request->type, fn ($qq) => $qq->where('type', $request->type))
-            ->when($request->search, fn ($qq) => $qq->where('title', 'like', "%{$request->search}%"))
-            ->withCount(['parts as active_parts_count' => fn ($qq) => $qq->where('is_active', true)])
+            ->when($request->type, fn($qq) => $qq->where('type', $request->type))
+            ->when($request->search, fn($qq) => $qq->where('title', 'like', "%{$request->search}%"))
+            ->withCount(['parts as active_parts_count' => fn($qq) => $qq->where('is_active', true)])
             ->orderBy('sort_order')
             ->orderByDesc('id')
             ->paginate(20);
@@ -77,7 +78,7 @@ class UserMaterialController extends Controller
                 ->where('is_active', true)
                 ->orderBy('sort_order')
                 ->get()
-                ->map(fn ($p) => [
+                ->map(fn($p) => [
                     'id' => (int) $p->id,
                     'title' => $p->title,
                     'video_url' => $p->video_url,
@@ -118,12 +119,29 @@ class UserMaterialController extends Controller
                     });
             })
             ->pluck('materials.id')
-            ->map(fn ($id) => (int) $id);
+            ->map(fn($id) => (int) $id);
+    }
+
+    public function byPackage(Package $package)
+    {
+        $items = $package->materials()
+            ->where('materials.is_active', true)
+            ->select('materials.id', 'materials.type', 'materials.title', 'materials.cover_url', 'materials.is_free')
+            ->get()
+            ->map(fn($m) => [
+                'id' => $m->id,
+                'type' => $m->type,
+                'title' => $m->title,
+                'cover_url' => $m->cover_url,
+                'is_free' => (bool) $m->is_free,
+                'sort_order' => (int) ($m->pivot->sort_order ?? 1),
+            ])->values();
+
+        return response()->json(['success' => true, 'data' => $items]);
     }
 
     /**
      * Cek akses single material.
-     * Biar show() gak duplicate logic query.
      */
     private function userCanAccessMaterial(int $userId, int $materialId, bool $isFree): bool
     {

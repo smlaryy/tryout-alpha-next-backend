@@ -74,4 +74,46 @@ class AdminPackageMaterialController extends Controller
 
         return response()->json(['success' => true, 'data' => $items]);
     }
+
+    public function destroy(Package $package, Material $material)
+    {
+        return DB::transaction(function () use ($package, $material) {
+
+            // Pastikan material memang attached
+            $exists = $package->materials()
+                ->where('materials.id', $material->id)
+                ->exists();
+
+            if (! $exists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Material not attached to this package'
+                ], 404);
+            }
+
+            // Detach dulu
+            $package->materials()->detach($material->id);
+
+            // Ambil sisa material sesuai urutan pivot saat ini
+            $remainingIds = $package->materials()
+                ->orderByPivot('sort_order')
+                ->pluck('materials.id')
+                ->values();
+
+            // Reindex jadi 1..n
+            $sync = $remainingIds->mapWithKeys(fn($id, $i) => [
+                (int) $id => ['sort_order' => $i + 1]
+            ])->toArray();
+
+            // Update pivot sort_order tanpa nambah/hapus relasi lain
+            if (!empty($sync)) {
+                $package->materials()->sync($sync);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Material detached & reordered successfully',
+            ]);
+        });
+    }
 }
